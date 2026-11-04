@@ -128,8 +128,8 @@ BD = sp.sqrt(sp.Integer(3))
 BC = 2 * BD * cos_t                            # 10/3
 paths = {
     "정답 BD/(2 sinθ)": BD / (2 * sin_t),
+    "AD를 지름으로 착각(이등분선이 중심을 지난다고 봄, R=AD/2)": 3 * s3 / 2,
     "AB를 지름으로 착각(R=AB/2)": sp.Integer(AB) / 2,
-    "sin2θ를 2sinθ로(BC/(4sinθ))": BC / (4 * sin_t),
     "∠ADB=90°−θ 착각(AB/(2cosθ))": sp.Integer(AB) / (2 * cos_t),
     "1/2 빠뜨림(2R)": BD / sin_t,
 }
@@ -137,18 +137,19 @@ off_paths = {  # 선지 밖 오답 경로
     "sinθ 대신 cosθ": BD / (2 * cos_t),
     "BD에서 멈춤": BD,
     "BC에서 멈춤": BC,
-    "AD를 지름으로 착각(R=AD/2)": 3 * s3 / 2,
+    "sin2θ를 2sinθ로(BC/(4sinθ)) — 범위 밖 배각 오개념이라 M1-8에서 선지에서 뺌": BC / (4 * sin_t),
 }
-choices = [sp.Integer(3), 5 * sp.sqrt(6) / 4, 9 * s3 / 5, ANS, 9 * sp.sqrt(2) / 2]
+choices = [3 * s3 / 2, sp.Integer(3), 9 * s3 / 5, ANS, 9 * sp.sqrt(2) / 2]
 for k, v in paths.items():
-    print("   경로 %-24s → %s" % (k, sp.nsimplify(sp.radsimp(v))))
+    print("   경로 %-40s → %s" % (k, sp.nsimplify(sp.radsimp(v))))
 check("(d) 정답 경로 = 9√2/4", sp.simplify(paths["정답 BD/(2 sinθ)"] - ANS) == 0)
 check("(d) 오답 경로 값이 모두 선지에 있음",
       all(any(sp.simplify(v - c) == 0 for c in choices) for v in paths.values()))
 check("(d) 선지 5개 서로 다름", len({sp.N(c, 30) for c in choices}) == 5)
 check("(d) 선지 오름차순", all(sp.N(choices[i]) < sp.N(choices[i + 1]) for i in range(4)))
 check("(d) 정답 위치 ④", sp.simplify(choices[3] - ANS) == 0)
-check("(d) 선지가 모두 R≥AB/2=3 을 만족(범위로 소거 불가)", all(sp.N(c) >= 3 for c in choices))
+# M1-8: '현 ≤ 지름'(R≥AB/2=3)으로 소거되는 선지는 ① 하나뿐(그 소거도 지름 발견이 필요)
+check("(d) R≥AB/2=3 으로 소거되는 선지는 ① 하나", [i for i, c in enumerate(choices) if sp.N(c) < 3] == [0])
 check("(d) 선지 밖 오답 경로 값은 선지와 겹치지 않음",
       all(all(sp.simplify(v - c) != 0 for c in choices) for v in off_paths.values()))
 check("(d) 단서 무시 값은 선지 밖", all(abs(sp.N(c, 30) - R_trap) > 1e-6 for c in choices))

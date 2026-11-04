@@ -5,7 +5,7 @@
   f: 최고차항 계수 양수인 삼차함수, f(α)=f(β)=f(γ)=0 (α<0<β<γ)
   g(x)=∫_0^x f,  h(x)=∫_0^x |f|
   (가) 방정식 g(x)=0의 서로 다른 실근의 개수는 3
-  (나) g(x)의 모든 극값의 합은 4
+  (나) 방정식 g(x)=-1의 서로 다른 실근의 개수는 1
   (다) ∫_α^γ |f(x)| dx = 11
   묻는 값: h(α)+h(γ)
 
@@ -14,8 +14,10 @@
   이 변환에서 c·L^4 배로만 바뀌므로 일반성을 잃지 않는다).
   f(x) = c·s·(x-a)(x-1)(x-r), c>0, s=±1 (최고차항 부호).
   (가)는 '사차함수 g가 중근을 가짐' ⇔ 어떤 임계점 p∈{a,1,r}에서 g(p)=0 이므로
-  세 후보 곡선 각각에 대해 (나)/(다)의 비 조건과 연립해 종결식(resultant)으로
-  모든 해를 구한다. 각 해에서 g의 실근 개수를 수치로 다시 세고,
+  세 후보 곡선 각각을 만든다. (나)는 'g(x)+1이 중근을 가짐' ⇔ 어떤 임계점 q에서
+  c·g₁(q)=-1 (g₁은 c=1인 모델)이고, (다)는 c·H=11이므로 c를 지우면 11·g₁(q)+H=0.
+  두 곡선을 종결식(resultant)으로 연립해 모든 해를 구한다. 각 해에서 g=0, g=-1의
+  실근 개수를 수치로 다시 세고,
   묻는 값 h(α)+h(γ)를 |f|의 수치적분(합성 심프슨)으로 직접 계산한다.
 """
 import sys
@@ -65,10 +67,10 @@ def g_num(s, av, rv, c, u):
     return c * simpson(num_f(s, av, rv), 0.0, u)
 
 
-def distinct_real_roots_g(s, av, rv, c):
-    # g(x) = c*s*∫_0^x (t-a)(t-1)(t-r) dt  (다항식 계수 직접 전개)
+def distinct_real_roots_g(s, av, rv, c, level=0.0):
+    # g(x) = level 의 서로 다른 실근. g(x) = c*s*∫_0^x (t-a)(t-1)(t-r) dt
     p = np.poly1d([1.0, -(av + 1 + rv), av + rv + av * rv, -av * rv])  # (t-a)(t-1)(t-r)
-    P = c * s * p.integ()                                              # g, 상수항 0
+    P = c * s * p.integ() - level                                      # g - level
     roots = np.roots(P.coeffs)
     re = sorted(z.real for z in roots if abs(z.imag) < 1e-4)
     cl = []
@@ -81,47 +83,51 @@ def distinct_real_roots_g(s, av, rv, c):
 def solve_all(s, region, verbose=False):
     """(가)(나)(다)를 모두 만족시키는 (a, r, c)를 모두 찾는다 (β=1 정규화)."""
     f, G, E, H = model(s)
-    R = sp.expand(11 * E - 4 * H)  # (나):(다) = 4:11
+    crit = (a, sp.Integer(1), r)
     sols = []
-    for p in (a, sp.Integer(1), r):
+    for p in crit:
         Gp = sp.expand(G(p))
         if Gp == 0:
             continue
-        res = sp.Poly(sp.resultant(sp.Poly(Gp, a), sp.Poly(R, a)), r)
-        if res.is_zero:
-            continue
-        rroots = []
-        for fac, _m in sp.factor_list(res.as_expr(), r)[1]:
-            fp = sp.Poly(fac, r)
-            if fp.degree() >= 1:
-                rroots += fp.nroots(n=30, maxsteps=500)
-        for rr in rroots:
-            if abs(sp.im(rr)) > 1e-12:
+        for q in crit:
+            if q == p:
+                continue  # g(p)=0 이면 c·g₁(p)=-1 불가
+            Rq = sp.expand(11 * G(q) + H)   # (나) c·g₁(q)=-1, (다) c·H=11
+            res = sp.Poly(sp.resultant(sp.Poly(Gp, a), sp.Poly(Rq, a)), r)
+            if res.is_zero:
                 continue
-            rv = float(sp.re(rr))
-            pa = sp.Poly(Gp.subs(r, rv), a)
-            if pa.degree() < 1:
-                continue
-            for aa in pa.nroots(n=30, maxsteps=500):
-                if abs(sp.im(aa)) > 1e-9:
+            rroots = []
+            for fac, _m in sp.factor_list(res.as_expr(), r)[1]:
+                fp = sp.Poly(fac, r)
+                if fp.degree() >= 1:
+                    rroots += fp.nroots(n=30, maxsteps=500)
+            for rr in rroots:
+                if abs(sp.im(rr)) > 1e-12:
                     continue
-                av = float(sp.re(aa))
-                if abs(float(R.subs({a: av, r: rv}))) > 1e-6 * (1 + abs(float(E.subs({a: av, r: rv})))):
+                rv = float(sp.re(rr))
+                pa = sp.Poly(Gp.subs(r, rv), a)
+                if pa.degree() < 1:
                     continue
-                if not region(av, rv):
-                    continue
-                Ev = float(E.subs({a: av, r: rv}))
-                Hv = float(H.subs({a: av, r: rv}))
-                if Ev <= 0 or Hv <= 0:
-                    continue  # c>0 이 되도록
-                c = 4.0 / Ev
-                n, rts = distinct_real_roots_g(s, av, rv, c)
-                if n != 3:
-                    continue
-                Q = h_num(s, av, rv, c, av) + h_num(s, av, rv, c, rv)
-                key = (round(av, 8), round(rv, 8))
-                if key not in [(round(t[0], 8), round(t[1], 8)) for t in sols]:
-                    sols.append((av, rv, c, Q, str(p)))
+                for aa in pa.nroots(n=30, maxsteps=500):
+                    if abs(sp.im(aa)) > 1e-9:
+                        continue
+                    av = float(sp.re(aa))
+                    if abs(float(Rq.subs({a: av, r: rv}))) > 1e-6 * (1 + abs(float(H.subs({a: av, r: rv})))):
+                        continue
+                    if not region(av, rv):
+                        continue
+                    Hv = float(H.subs({a: av, r: rv}))
+                    if Hv <= 0:
+                        continue  # c>0 이 되도록
+                    c = 11.0 / Hv
+                    n0, _ = distinct_real_roots_g(s, av, rv, c)
+                    n1, _ = distinct_real_roots_g(s, av, rv, c, level=-1.0)
+                    if n0 != 3 or n1 != 1:
+                        continue
+                    Q = h_num(s, av, rv, c, av) + h_num(s, av, rv, c, rv)
+                    key = (round(av, 8), round(rv, 8))
+                    if key not in [(round(t[0], 8), round(t[1], 8)) for t in sols]:
+                        sols.append((av, rv, c, Q, str(p), str(q)))
     return sols
 
 
@@ -132,8 +138,8 @@ print("=" * 64)
 # ---------------------------------------------------------------- (a)(b)
 print("\n(a)(b) 정답과 유일성 — 최고차항 양수, α<0<β<γ (β=1 정규화)")
 main = solve_all(1, lambda av, rv: av < 0 < 1 < rv)
-for av, rv, c, Q, p in main:
-    print(f"    해: α={av:.6f}, β=1, γ={rv:.6f}, c={c:.6f}, (가)의 중근 위치={p}, h(α)+h(γ)={Q:.6f}")
+for av, rv, c, Q, p, q in main:
+    print(f"    해: α={av:.6f}, β=1, γ={rv:.6f}, c={c:.6f}, (가) 중근 위치={p}, (나) 중근 위치={q}, h(α)+h(γ)={Q:.6f}")
 check("해가 존재한다", len(main) >= 1)
 Qs = sorted({round(t[3], 6) for t in main})
 check("묻는 값이 하나로 정해진다(불변량)", len(Qs) == 1, f"값 집합={Qs}")
@@ -141,18 +147,18 @@ check("정답 = 9", len(Qs) == 1 and abs(Qs[0] - 9) < 1e-4)
 
 # 해의 장부 값(참고) 및 수치로 조건 재확인
 if main:
-    av, rv, c, Q, p = main[0]
+    av, rv, c, Q, p, q = main[0]
     gA, gB, gC = (g_num(1, av, rv, c, u) for u in (av, 1.0, rv))
     tot = c * simpson(lambda t: np.abs(num_f(1, av, rv)(t)), av, rv)
     print(f"    g(α)={gA:.6f}, g(β)={gB:.6f}, g(γ)={gC:.6f}, 극값의 합={gA+gB+gC:.6f}, ∫_α^γ|f|={tot:.6f}")
     print(f"    h(α)={h_num(1, av, rv, c, av):.6f}, h(γ)={h_num(1, av, rv, c, rv):.6f}")
-    check("수치 재확인: (나) 극값의 합 4", abs(gA + gB + gC - 4) < 1e-6)
+    check("수치 재확인: (나) 최솟값 g(α) = -1 (g=-1에 접함)", abs(gA + 1) < 1e-6 and q == "a")
     check("수치 재확인: (다) ∫|f| = 11", abs(tot - 11) < 1e-6)
     check("중근은 γ에서 (g(γ)=0)", p == "r" and abs(gC) < 1e-8)
 
 # 함수는 유일하지 않다: x->Lx 확대족
 if main:
-    av, rv, c, Q, p = main[0]
+    av, rv, c, Q, p, q = main[0]
     vals = []
     for L in (0.5, 1.0, 2.0, 3.7):
         aL, bL, rL, cL = av * L, 1.0 * L, rv * L, c / L ** 4
@@ -187,17 +193,26 @@ def Q_of(av, rv, c):
 
 
 # (가) 제거: (나)(다)와 α<0<1<r 만족 해를 여러 r에서 구해 묻는 값 비교
-R1 = sp.expand(11 * E1 - 4 * H1)
 vals = []
 for rv in np.linspace(1.1, 8.0, 70):
     rv = float(rv)
-    for aa in sp.Poly(R1.subs(r, rv), a).nroots():
-        if abs(sp.im(aa)) > 1e-9:
+    for qq in (a, sp.Integer(1), r):
+        Rq = sp.expand(11 * G1(qq) + H1).subs(r, rv)
+        pa = sp.Poly(Rq, a)
+        if pa.degree() < 1:
             continue
-        av = float(sp.re(aa))
-        Ev = float(E1.subs({a: av, r: rv}))
-        if av < 0 and Ev > 0:
-            vals.append(round(Q_of(av, rv, 4 / Ev), 4))
+        for aa in pa.nroots():
+            if abs(sp.im(aa)) > 1e-9:
+                continue
+            av = float(sp.re(aa))
+            if not av < 0:
+                continue
+            Hv = float(H1.subs({a: av, r: rv}))
+            if Hv <= 0:
+                continue
+            c = 11 / Hv
+            if distinct_real_roots_g(1, av, rv, c, level=-1.0)[0] == 1:
+                vals.append(round(Q_of(av, rv, c), 4))
 check("(가)를 빼면 묻는 값이 여러 개", len(set(vals)) >= 2, f"{len(set(vals))}개, 범위 {min(vals)}~{max(vals)}")
 
 # (가)만 둔 곡선 a=a(r) (g(γ)=0): r∈(2,3)에서 α<0
@@ -212,11 +227,11 @@ for rv in (2.1, 2.3, 2.6, 2.9):
     vals.append(round(Q_of(av, rv, c), 4))
 check("(나)를 빼면 묻는 값이 여러 개", len(set(vals)) >= 2, f"{vals}")
 
-# (다) 제거: (가)+(나) → c=4/E
+# (다) 제거: (가)+(나) → 최솟값 g(α)=-1, c=-1/g₁(α)
 vals = []
 for rv in (2.1, 2.3, 2.6, 2.9):
     av = float(a_of_r.subs(r, rv))
-    c = 4 / float(E1.subs({a: av, r: rv}))
+    c = -1 / float(G1(a).subs({a: av, r: rv}))
     vals.append(round(Q_of(av, rv, c), 4))
 check("(다)를 빼면 묻는 값이 여러 개", len(set(vals)) >= 2, f"{vals}")
 
@@ -231,8 +246,9 @@ check("α<0을 빼면(0<α 허용) 답이 9 하나로 정해지지 않음",
 neg = solve_all(-1, lambda av, rv: av < 0 < 1 < rv)
 neg_Q = sorted({round(t[3], 4) for t in neg})
 print(f"    최고차항 음수의 해: {[(round(t[0],4), round(t[1],4), round(t[3],4)) for t in neg]}")
-check("최고차항 양수를 빼면 답이 9 하나로 정해지지 않음",
-      any(abs(q - 9) > 1e-3 for q in neg_Q), f"추가 값={neg_Q}")
+# (나) 변경 후: 최고차항이 음수이면 g→-∞ 이므로 g(x)=-1의 근이 항상 2개 이상 → 해 없음.
+# 따라서 이 조건은 답을 바꾸는 조건이 아니라 부호표를 고정하는 '풀이 열쇠'이다.
+check("최고차항 음수이면 해 없음(풀이 열쇠: 빼도 답 9 유지)", len(neg) == 0, f"음수 해={neg_Q}")
 
 # ---------------------------------------------------------------- (d)
 print("\n(d) 선지 검사")
@@ -243,8 +259,8 @@ check("정답이 ①", abs(options[answer_idx] - 9) < 1e-9)
 
 # 대표 오답 경로: 넓이 장부 A=∫_α^0 f, B=∫_0^β f, C=∫_β^γ(-f)
 A_, B_ = sp.symbols("A B", positive=True)
-# 바른 장부: C=B, (나) B-A=4, (다) A+2B=11, 묻는 값 h(α)+h(γ) = -A + 2B
-sol = sp.solve([B_ - A_ - 4, A_ + 2 * B_ - 11], [A_, B_], dict=True)[0]
+# 바른 장부: C=B, (나) 최솟값 g(α)=-A=-1, (다) A+2B=11, 묻는 값 h(α)+h(γ) = -A + 2B
+sol = sp.solve([A_ - 1, A_ + 2 * B_ - 11], [A_, B_], dict=True)[0]
 right = -sol[A_] + 2 * sol[B_]
 check("장부 계산과 독립 계산 일치", right == 9, f"A={sol[A_]}, B={sol[B_]}")
 # 오답1: h(α)를 넓이(양수) A로 처리 → A + 2B
@@ -260,6 +276,8 @@ for k, v in wrong.items():
     print(f"    오답 경로 [{k}] → {v} ({'선지 ' + '①②③④⑤'[options.index(v)] if v in options else '선지 밖'})")
 check("오답 값이 정답과 겹치지 않음", all(v != 9 for v in wrong.values()))
 check("대표 오답(h(α)=+넓이) 11이 선지 ③에 있음", w1 == 11 and options.index(11) == 2)
+# 오답5: (나)를 극솟값 g(γ)=-1로 착각((가)의 접점과 혼동) → (가)와 모순, 해 없음 → 확인
+check("(나)를 g(γ)=-1로 읽으면 (가) g(γ)=0과 모순", True)
 
 print("\n" + "=" * 64)
 if FAIL:

@@ -1,5 +1,6 @@
 """q15 검증: 수직선 위 점 P, x(t)=t^4+a t^3+b t^2+c t.
-(가) v(1)=v(3)=0  (나) t>0에서 운동 방향이 바뀌는 시각은 오직 하나  (다) v(2)>0
+(가) v(1)=v(3)=0  (나) t>0에서 운동 방향이 바뀌는 시각은 오직 하나
+(다) 시각 t=2에서 점 P는 원점을 향하여 움직인다  ⇔  x(2)·v(2) < 0 (|x|가 감소)
 묻는 값: 시각 t=4에서의 가속도. 정답 ① 28.
 """
 import sys
@@ -48,7 +49,7 @@ def conds(x, use=("가", "나", "다")):
     if "나" in use:
         res &= len(direction_changes(x)) == 1
     if "다" in use:
-        res &= v.subs(t, 2) > 0
+        res &= x.subs(t, 2) * v.subs(t, 2) < 0
     return bool(res)
 
 
@@ -67,7 +68,12 @@ check("정답 28", ans == 28)
 
 # 기호 확인: (가)에서 v=4(t-1)(t-3)(t-r). (나) 만족 ⇔ r=1 또는 r=3 (r≤0: 두 번, 0<r≠1,3: 세 번 바뀜)
 rs = sp.symbols("r", real=True)
-check("(다): v(2)=4(r-2)>0 ⇔ r>2", sp.simplify((4*(t-1)*(t-3)*(t-rs)).subs(t, 2) - 4*(rs-2)) == 0)
+check("(다): v(2)=4(r-2)", sp.simplify((4*(t-1)*(t-3)*(t-rs)).subs(t, 2) - 4*(rs-2)) == 0)
+# (나)의 두 후보에서 위치 x(2)는 모두 음수 → (다) ⇔ v(2)>0 ⇔ r=3
+x_r1, x_r3 = poly_from_r(1), poly_from_r(3)
+print("x(2): r=1 →", x_r1.subs(t, 2), ", r=3 →", x_r3.subs(t, 2), "/ v(2): r=1 →", sp.diff(x_r1, t).subs(t, 2), ", r=3 →", sp.diff(x_r3, t).subs(t, 2))
+check("두 후보 모두 x(2)<0", x_r1.subs(t, 2) < 0 and x_r3.subs(t, 2) < 0)
+check("(다)는 r=3에서만 성립(x(2)<0, v(2)>0)", conds(x_r3, ("다",)) and not conds(x_r1, ("다",)))
 
 # (c) 조건 필요성
 def answers(use):
@@ -91,7 +97,7 @@ check("(다)를 빼면 답 28, 60 두 개", A_da == [28, 60])
 # (d) 선지·오답 경로
 choices = [28, 36, 44, 52, 60]
 check("선지 등간격 오름차순, 정답 ①", choices == sorted(choices) and len({choices[i+1]-choices[i] for i in range(4)}) == 1 and choices[0] == ans)
-wrong_r1 = accel4(poly_from_r(1))           # (다) 무시/부호 착각: v=4(t-1)^2(t-3)
+wrong_r1 = accel4(poly_from_r(1))           # (다)에서 x(2)>0으로 착각(원점을 향함 = v<0) 또는 (다) 무시: v=4(t-1)^2(t-3)
 check("오답 r=1 경로 → 60 = ⑤", wrong_r1 == 60 and wrong_r1 in choices)
 wrong_v = sp.diff(xs, t).subs(t, 4)        # 가속도 대신 속도
 check("오답 속도 v(4)=12 → 선지 밖", wrong_v == 12 and wrong_v not in choices)

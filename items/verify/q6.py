@@ -1,4 +1,4 @@
-"""q6: 표본비율 0.2, 95% 신뢰구간 길이 0.098 → n — 정답 ③ 256."""
+"""q6: 표본 크기 400, 표본비율 0.2, 95% 신뢰구간 길이 b−a — 정답 ③ 0.0784."""
 import sys
 from fractions import Fraction as F
 # --- 공용 검사 함수(문항 파일마다 동일) ---
@@ -37,14 +37,19 @@ def run(name, fn):
 
 def main():
     p = F(1, 5)
-    target = F(98, 1000)
+    n = 400
     z = F(196, 100)
-    # 길이 = 2·z·√(p(1−p)/n). 자연수 n 전수 탐색(1~10000), 제곱해서 정확 비교
-    hits = [n for n in range(1, 10001) if (2 * z) ** 2 * p * (1 - p) / n == target**2]
-    assert hits == [256], hits
-    ans = hits[0]
-    mark = check_choices(ans, [192, 224, 256, 288, 320], 3)
-    return f"정답 {mark} {ans}"
+    # 길이 = 2·z·√(p(1−p)/n). √(p(1−p)/n) = √(16/40000) = 1/50 (정확한 유리수)
+    var = p * (1 - p) / n
+    s = F(1, 50)
+    assert s * s == var, var
+    ans = 2 * z * s
+    assert ans == F(784, 10000), ans
+    choices = [F(588, 10000), F(686, 10000), F(784, 10000), F(882, 10000), F(980, 10000)]
+    mark = check_choices(ans, choices, 3)
+    # 대표 오답: 2배 누락(0.0392), √ 누락(2·1.96·0.0004), 분산을 p̂/n으로(2·1.96·√(0.2/400)≈0.0877)
+    assert z * s not in choices
+    return f"정답 {mark} {float(ans)}"
 
 
 run("q6", main)

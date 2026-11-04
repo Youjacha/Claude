@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """q16 검증 스크립트 (M1-17).
 
-문항: 자연수 a, 실수 k에 대하여 0 <= x <= 2*pi 에서
+문항: 두 자연수 a, k에 대하여 0 <= x <= 2*pi 에서
       2cos^2(ax) + sin(ax) = k 의 서로 다른 실근의 개수가 21이 되도록 하는
-      모든 순서쌍 (a, k)에 대하여 a+k 의 값의 합.  정답 ③ 35.
+      모든 순서쌍 (a, k)에 대하여 a+k 의 값의 합.  정답 ③ 15.
+      (M1-8 변경: k를 실수 → 자연수로 좁힘. 실수 k일 때의 결과는 조건 필요성에서 비교.)
 
 실행: python3 items/verify/q16.py   (pip install sympy)
 방법: 해설의 개수식(4a+1, 3a, a ...)을 쓰지 않고,
@@ -54,12 +55,15 @@ def count_roots(a, k, closed=True):
 # 임계 k: t=-1,0,1 을 지나는 값, 꼭짓점(중근) 값
 crit = [sp.Integer(-1), sp.Integer(1), sp.Integer(2), sp.Rational(17, 8)]
 mids = [sp.Integer(-2), sp.Integer(0), sp.Rational(3, 2), sp.Rational(33, 16), sp.Integer(3)]
-KS = crit + mids
+KS_REAL = crit + mids
+# 자연수 k: 2cos^2+sin 의 최댓값은 17/8 이므로 k>=3 이면 근이 없다. 3은 그 확인용.
+KS = [sp.Integer(1), sp.Integer(2), sp.Integer(3)]
 
-def solutions(N, closed=True, amax=30):
+def solutions(N, closed=True, amax=30, ks=None):
+    ks = KS if ks is None else ks
     out = []
     for a in range(1, amax + 1):
-        for k in KS:
+        for k in ks:
             if count_roots(a, k, closed) == N:
                 out.append((a, k))
     return out
@@ -67,11 +71,11 @@ def solutions(N, closed=True, amax=30):
 # 개수 >= a (근이 있는 모든 경우) 이므로 N=21 이면 a<=21 로 충분. 여유 있게 30까지.
 sol = solutions(21)
 print('(a,k) with 21 roots:', sol)
-check(all(k in crit for _, k in sol), '해는 모두 임계값 k (구간 k는 개수 21 불가 → 순서쌍 유한)')
+check(all(count_roots(a, 3) == 0 for a in (1, 5, 7)), 'k>=3 이면 근 없음 (k 후보는 1, 2뿐)')
 ans = sum(a + k for a, k in sol)
 print('answer =', ans)
-check(sorted(sol) == [(5, 2), (7, 1), (21, -1)], '순서쌍은 (5,2),(7,1),(21,-1) 셋뿐 (유일성)')
-check(ans == 35, '정답 35')
+check(sorted(sol) == [(5, 2), (7, 1)], '순서쌍은 (5,2),(7,1) 둘뿐 (유일성)')
+check(ans == 15, '정답 15')
 
 # --- 수치 교차 확인 (x 직접 스캔) ---
 def numeric_count(a, k, n=2_000_000):
@@ -89,51 +93,53 @@ for a, k in [(5, 2), (7, 1), (21, -1), (4, sp.Rational(3, 2)), (3, 0), (6, sp.Ra
     check(ex == nu, f'수치 교차 확인 a={a}, k={k}: exact {ex} = numeric {nu}')
 
 # --- 조건 필요성 ---
-# (1) 닫힌구간 -> 반열린구간 [0,2pi): (5,2) 가 빠지고 답이 28
+# (1) 닫힌구간 -> 반열린구간 [0,2pi): (5,2) 가 빠지고 답이 8
 sol_open = solutions(21, closed=False)
 ans_open = sum(a + k for a, k in sol_open)
 print('[0,2pi) 일 때:', sol_open, ans_open)
-check(ans_open != 35 and ans_open == 28, '닫힌구간 조건 필요 (빼면 28 = 선지 ②)')
+check(ans_open != 15 and ans_open == 8, '닫힌구간 조건 필요 (빼면 8)')
 
 # (2) a 자연수 -> 양의 유리수: 21개가 되는 다른 순서쌍이 생김
 extra = []
-for num in range(1, 120):
-    a = Fraction(num, 4)
+for num in range(1, 30 * 40):
+    a = Fraction(num, 40)   # 분모 40 격자: 2, 4, 5, 8 등의 분모를 함께 훑음
     if a.denominator == 1:
         continue
-    for k in KS:
+    for k in KS[:2]:
         if count_roots(sp.Rational(a.numerator, a.denominator), k) == 21:
             extra.append((str(a), k))
 print('a 비정수일 때 21개 예:', extra[:6], '... 총', len(extra))
 check(len(extra) > 0, 'a 자연수 조건 필요 (빼면 순서쌍 추가)')
 
-# (3) 개수 21(홀수) -> 짝수 20: 구간 k 에서 개수 20 → 순서쌍 무수히 많음
-sol20 = solutions(20)
-inf20 = [p for p in sol20 if p[1] in mids]
-print('N=20 구간 대표 k 해:', inf20)
-check(len(inf20) > 0, '개수 21(홀수) 조건 필요 (짝수면 k가 구간 → 순서쌍 무한)')
+# (3) k 자연수 -> 실수: (21,-1) 이 추가되어 답 35 (검수 전 문항)
+sol_real = solutions(21, ks=KS_REAL)
+ans_real = sum(a + k for a, k in sol_real)
+print('k 실수일 때:', sol_real, ans_real)
+check(sorted(sol_real) == [(5, 2), (7, 1), (21, -1)] and ans_real == 35, 'k 자연수 조건 필요 (실수면 35)')
+# (4) 개수 21 -> 20: 자연수 k 에서는 해 없음 (개수 3a, 4a+1 꼴)
+check(solutions(20) == [], '개수 20이면 해 없음 (21이 3a·4a+1 꼴을 모두 만족하는 값)')
 
 # --- 오답 경로 (wrong:) ---
 def model_sum(model, N=21):
     return sum(a + k for k, f in model for a in range(1, 100) if f(a) == N)
 wrong = {
-    '끝점 누락(t=0을 2a개)': [(2, lambda a: 4*a), (1, lambda a: 3*a), (-1, lambda a: a)],
-    't=1 근 누락(k=1에서 2a개)': [(2, lambda a: 4*a+1), (1, lambda a: 2*a), (-1, lambda a: a)],
-    '접점 k=-1 누락': [(2, lambda a: 4*a+1), (1, lambda a: 3*a)],
-    't=±1을 주기당 2개': [(2, lambda a: 4*a+1), (1, lambda a: 4*a), (-1, lambda a: 2*a)],
+    '끝점 누락(t=0을 2a개)': [(2, lambda a: 4*a), (1, lambda a: 3*a)],
+    't=1 근 누락(k=1에서 2a개)': [(2, lambda a: 4*a+1), (1, lambda a: 2*a)],
+    't=±1을 주기당 2개': [(2, lambda a: 4*a+1), (1, lambda a: 4*a)],
+    'k=2에서 t=1/2 근 누락(2a+1개)': [(2, lambda a: 2*a+1), (1, lambda a: 3*a)],
 }
-choices = [21, 28, 35, 42, 49]
+choices = [7, 11, 15, 19, 23]
 check(choices[2] == ans, '정답이 ③')
-check(all(choices[i+1] - choices[i] == 7 for i in range(4)), '선지 등간격 오름차순')
+check(all(choices[i+1] - choices[i] == 4 for i in range(4)), '선지 등간격 오름차순')
 for name, m in wrong.items():
     v = model_sum(m)
     where = f'선지 {"①②③④⑤"[choices.index(v)]}' if v in choices else '선지 밖'
     print(f'wrong: {name} -> {v} ({where})')
     check(v != ans, f'오답 경로 "{name}" 값 {v} ≠ 정답')
-check(model_sum(wrong['끝점 누락(t=0을 2a개)']) == 28, '대표 함정(끝점) 값 28이 선지 ②에 있음')
+check(model_sum(wrong['t=1 근 누락(k=1에서 2a개)']) == 7, '대표 함정(접점 t=1 누락) 값 7이 선지 ①에 있음')
 
 print()
 if fails:
     print(f'FAILED {len(fails)}')
     sys.exit(1)
-print('ALL PASS: q16 정답 ③ 35')
+print('ALL PASS: q16 정답 ③ 15')

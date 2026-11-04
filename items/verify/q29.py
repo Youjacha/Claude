@@ -1,12 +1,12 @@
-"""q29 검증 — 두 주머니 공 교환 시행, 조건부확률 (정답 262).
+"""q29 검증 — 두 주머니 공 교환 시행, 조건부확률 (정답 227).
 
 공에 번호를 붙여(같은 색이라도 서로 다른 공) 3번의 시행을 모두 열거한다.
-한 번의 시행은 A의 공 3개 중 1개, B의 공 4개 중 1개를 고르는 12가지가 같은 확률이다.
+한 번의 시행은 A의 공 2개 중 1개, B의 공 3개 중 1개를 고르는 6가지가 같은 확률이다.
 확률은 Fraction으로 계산한다.
 
 확인 항목
- (a) 정답: P(서로 다른 색 교환이 있었음 | 3회 후 A의 흰 공 1개) = 113/149, p+q = 262
- (b) 유일성: 기약분수 표현이 하나, 262는 1~999 자연수
+ (a) 정답: P(서로 다른 색 교환이 있었음 | 3회 후 A의 흰 공 1개) = 100/127, p+q = 227
+ (b) 유일성: 기약분수 표현이 하나, 227은 1~999 자연수
  (c) 조건 필요성: 조건을 빼거나 바꾸면 답이 달라짐
  (d) 대표 오답 경로 값이 정답과 다름
 """
@@ -44,13 +44,13 @@ def enumerate_runs(A0, B0, n):
     return runs
 
 
-A_INIT = ['W', 'K', 'K']        # 주머니 A: 흰 공 1, 검은 공 2
-B_INIT = ['W', 'W', 'K', 'K']   # 주머니 B: 흰 공 2, 검은 공 2
+A_INIT = ['W', 'K']             # 주머니 A: 흰 공 1, 검은 공 1
+B_INIT = ['W', 'K', 'K']        # 주머니 B: 흰 공 1, 검은 공 2
 N = 3
 
 runs = enumerate_runs(A_INIT, B_INIT, N)
 TOTAL = len(runs)
-check("전체 경우의 수 12^3", TOTAL == 12 ** 3, str(TOTAL))
+check("전체 경우의 수 6^3", TOTAL == 6 ** 3, str(TOTAL))
 
 
 def diff_swap(r):
@@ -68,15 +68,15 @@ cond = lambda r: r[0][-1] == 1          # 3회 후 A의 흰 공 1개(처음과 �
 # (a) 정답
 ans = prob(diff_swap, cond)
 p, q = ans.denominator, ans.numerator
-check("(a) 조건부확률 = 113/149", ans == F(113, 149), str(ans))
-check("(a) p+q = 262", p + q == 262, str(p + q))
+check("(a) 조건부확률 = 100/127", ans == F(100, 127), str(ans))
+check("(a) p+q = 227", p + q == 227, str(p + q))
 
-# 독립 재계산: 색만 보는 상태(A의 흰 공 수) 전이 행렬로 다시 계산 (개수 /12)
+# 독립 재계산: 색만 보는 상태(A의 흰 공 수) 전이 행렬로 다시 계산 (개수 /6)
 def trans(w):
-    bw = 3 - w                      # B의 흰 공 수 (전체 흰 공 3개)
-    down = w * (4 - bw)             # A 흰 ↔ B 검
-    up = (3 - w) * bw               # A 검 ↔ B 흰
-    stay = 12 - down - up
+    bw = 2 - w                      # B의 흰 공 수 (전체 흰 공 2개)
+    down = w * (3 - bw)             # A 흰 ↔ B 검
+    up = (2 - w) * bw               # A 검 ↔ B 흰
+    stay = 6 - down - up
     return {w - 1: down, w + 1: up, w: stay}
 
 def chain(start, n):
@@ -93,7 +93,8 @@ def chain(start, n):
 ch = chain(1, 3)
 den2 = sum(c for pa, c in ch.items() if pa[-1] == 1)
 num2 = sum(c for pa, c in ch.items() if pa[-1] == 1 and len(set(pa)) > 1)
-check("(a) 상태 전이 재계산 894, 678", (den2, num2) == (894, 678), f"{num2}/{den2}")
+check("(a) 상태 전이 재계산 127, 100", (den2, num2) == (127, 100), f"{num2}/{den2}")
+check("(a) 상태 2에서 머묾 0 (1→2→2 불가)", trans(2)[2] == 0, str(trans(2)))
 check("(a) 두 계산 일치", F(num2, den2) == ans)
 
 # (b) 유일성·범위
@@ -106,13 +107,13 @@ check("(b) 조건 하에서 상태 변화 횟수 ∈ {0,2}", changes == {0, 2}, 
 # (c) 조건 필요성
 no_cond = prob(diff_swap)
 check("(c) 조건(3회 후 흰 공 1개) 제거 시 답이 달라짐", no_cond != ans, f"{no_cond}")
-for e in (0, 2, 3):
+for e in (0, 2):
     v = prob(diff_swap, lambda r, e=e: r[0][-1] == e)
     check(f"(c) 조건을 '흰 공 {e}개'로 바꾸면 답이 달라짐", v != ans, f"{v}")
 # '서로 다른 색 교환'을 '같은 색 교환'으로 바꾸면 다른 값
 same = prob(lambda r: any(a == b for a, b in r[1]), cond)
 check("(c) 묻는 사건을 '같은 색 교환이 있었음'으로 바꾸면 달라짐", same != ans, str(same))
-# 초기 구성(B의 흰 공 2개)이 필요: B를 흰1·검3으로 바꾸면 값이 달라짐
+# 초기 구성이 필요: B를 흰1·검3으로 바꾸면 값이 달라짐
 runs_b = enumerate_runs(A_INIT, ['W', 'K', 'K', 'K'], N)
 den_b = [r for r in runs_b if r[0][-1] == 1]
 v_b = F(sum(1 for r in den_b if diff_swap(r)), len(den_b))
@@ -120,16 +121,16 @@ check("(c) B 구성을 바꾸면 달라짐", v_b != ans, str(v_b))
 
 # (d) 대표 오답 경로
 wrong = {
-    "조건부 아님 678/1728": F(678, 1728),
-    "가운데 머묾을 상태1의 6으로 셈 756/972": F(756, 972),
-    "(1,3)번째 변화 경우 누락 504/720": F(504, 720),
-    "1→0→1 경로 누락 408/624": F(408, 624),
+    "조건부 아님 100/216": F(100, 216),
+    "가운데 머묾을 상태1의 3으로 셈 126/153": F(126, 153),
+    "(1,3)번째 변화 경우 누락 84/111": F(84, 111),
+    "1→0→1 경로 누락 36/63": F(36, 63),
 }
 for k, v in wrong.items():
     s = v.numerator + v.denominator
-    check(f"(d) 오답 [{k}] = {v} → {s} ≠ 262", s != 262 and v != ans)
+    check(f"(d) 오답 [{k}] = {v} → {s} ≠ 227", s != 227 and v != ans)
 joint = prob(lambda r: cond(r) and diff_swap(r))
-check("(d) 조건부 아님(교집합 확률) 값 재확인", joint == F(678, 1728), str(joint))
+check("(d) 조건부 아님(교집합 확률) 값 재확인", joint == F(100, 216), str(joint))
 
 print()
 print(f"정답: q/p = {ans}, p+q = {p + q}")
