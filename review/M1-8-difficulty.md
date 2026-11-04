@@ -2,7 +2,7 @@
 
 - 작업: 보드 M1-8. 입력: `design/blueprint.md`(목표 난이도·정답률), `analysis/discrimination/README.md` §2(번호 위치 기준)·§5(레버), `items/q*.md`, `review/M1-7-review.md` §6.
 - 보드 acceptance의 산출 경로 `review/difficulty.md`는 오케스트레이터 지시에 따라 이 파일(`review/M1-8-difficulty.md`)로 낸다.
-- 커밋: 문항·스크립트·설계표·정답표 수정 `__COMMIT__` (이 보고서 포함).
+- 커밋: 문항·스크립트·설계표·정답표 수정 `3ae425a` (이 보고서 포함; 해시 기입은 후속 커밋).
 
 ## 1. 평가 방법
 
