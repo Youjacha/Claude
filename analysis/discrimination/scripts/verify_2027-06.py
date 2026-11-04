@@ -1,5 +1,5 @@
 """2027학년도 6월 모평 변별 문항 검증 스크립트 (analysis/discrimination/2027-06.md 부록).
-실행: python3 analysis/discrimination/verify_2027-06.py   (sympy 필요)
+실행: python3 analysis/discrimination/scripts/verify_2027-06.py   (sympy 필요)
 """
 from fractions import Fraction as F
 from functools import lru_cache
