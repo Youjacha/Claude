@@ -1,0 +1,24 @@
+% 정답표 (A4) — make_tex.py가 answers.md를 읽어 \answersheet 내용을 채운다.
+\documentclass{article}
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage{amsmath,array}
+\pagestyle{empty}
+\setmainfont{Latin Modern Roman}
+\setmainhangulfont{NanumMyeongjo}[BoldFont={NanumMyeongjo Bold}]
+\newfontfamily\gothicL{NanumGothic}[BoldFont={NanumGothic ExtraBold}]
+\newhangulfontfamily\gothicH{NanumGothic}[BoldFont={NanumGothic ExtraBold}]
+\newcommand\gothic{\gothicL\gothicH}
+\newfontfamily\circfont{NanumMyeongjo}
+\newcommand\answersheet[2]{%
+  \begin{center}
+  {\gothic\bfseries\fontsize{20bp}{26bp}\selectfont 수학 영역 정답표}\par\vspace{4bp}
+  {\small 2028학년도 대학수학능력시험 대비 모의고사 (2022 개정 교육과정)}\par\vspace{18bp}
+  {\large\renewcommand{\arraystretch}{1.55}\circfont
+  \begin{tabular}{|>{\centering\arraybackslash}p{14mm}|>{\centering\arraybackslash}p{20mm}|>{\centering\arraybackslash}p{14mm}||>{\centering\arraybackslash}p{14mm}|>{\centering\arraybackslash}p{20mm}|>{\centering\arraybackslash}p{14mm}|}\hline
+  \textbf{번호} & \textbf{정답} & \textbf{배점} & \textbf{번호} & \textbf{정답} & \textbf{배점} \\ \hline\hline
+  #1
+  \end{tabular}}\par\vspace{14bp}
+  배점 합계 #2점 \quad(1\textasciitilde21번 5지선다형, 22\textasciitilde30번 단답형)
+  \end{center}}

@@ -1,0 +1,139 @@
+% 문제지 조판 틀 — analysis/2028-example.md §3 (원본 pt = bp, A3 842×1191bp)
+% make_tex.py가 이 파일 뒤에 쪽(\exampage)들을 붙여 build/exam.tex를 만든다.
+\documentclass{article}
+\usepackage[paperwidth=842bp,paperheight=1191bp,margin=0bp]{geometry}
+\usepackage{fontspec}
+\usepackage{kotex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx,calc,xcolor}
+\usepackage{tikz}
+\pagestyle{empty}
+
+% ---------- 글꼴: 본문 명조, 머리말·표지 고딕
+\setmainfont{Latin Modern Roman}
+\setmainhangulfont{NanumMyeongjo}[BoldFont={NanumMyeongjo Bold}]
+\newfontfamily\circfont{NanumMyeongjo}                 % ①~⑤
+\newfontfamily\gothicL{NanumGothic}[BoldFont={NanumGothic ExtraBold}]
+\newhangulfontfamily\gothicH{NanumGothic}[BoldFont={NanumGothic ExtraBold}]
+\newcommand\gothic{\gothicL\gothicH}
+\newfontfamily\myeongL{NanumMyeongjo}
+\newcommand\bodyfont{\fontsize{11bp}{19bp}\selectfont}  % §3.5 약 11pt, 줄 간격 약 19pt
+
+% ---------- 판 치수 (§3.1)
+\newlength\colw   \setlength\colw{320bp}
+\def\colLx{87}  \def\colRx{434}  \def\rulexL{87} \def\rulexR{754} \def\midx{420.5}
+\def\colbottom{1060}
+\newcount\pageno
+
+% ---------- 문항
+\newenvironment{qitem}[1]{%
+  \begin{list}{}{\settowidth\labelwidth{\textbf{30.}}\setlength\labelsep{4bp}%
+    \setlength\leftmargin{\labelwidth+\labelsep}\setlength\topsep{0pt}%
+    \setlength\itemsep{0pt}\setlength\parsep{0pt}\setlength\listparindent{0pt}}%
+  \item[\textbf{#1.}\hfill]\ignorespaces}{\end{list}}
+\newcommand\pts[1]{\mbox{[#1점]}}
+\newcommand\dline[1]{\par\vspace{4bp}\noindent\hspace*{0.1\linewidth}#1\par\vspace{4bp}}
+\newcommand\blank[1]{{\setlength\fboxsep{3bp}\fbox{\small\text{\ (#1)\ }}}}
+\newsavebox\cbox
+\newenvironment{condbox}{\par\vspace{8bp}\setlength\fboxsep{7bp}%
+  \begin{lrbox}{\cbox}\begin{minipage}{\linewidth-16bp-2\fboxsep-2\fboxrule}\setlength\parindent{0pt}\setlength\lineskip{5bp}}%
+  {\end{minipage}\end{lrbox}\noindent\hspace*{8bp}\fbox{\usebox\cbox}\par\vspace{8bp}}
+\newlength\condw
+\newcommand\cond[2]{\par\settowidth\condw{(가)\ }\hangindent\condw\hangafter1\noindent(#1)\ #2}
+\newcommand\condtext[1]{\par\noindent #1}
+\newcommand\cn[1]{{\circfont #1}\,}
+\newcommand\cnc[1]{$\vcenter{\hbox{\circfont #1}}$\,}   % 분수 선지: 원문자를 분수 세로 중앙에
+\newcommand\choiceslot[2]{\makebox[0.2\linewidth][l]{\cn{#1}$\displaystyle #2$}}
+\newcommand\choicesfrac[5]{{\let\cn\cnc\choices{#1}{#2}{#3}{#4}{#5}}}
+\newcommand\choices[5]{\par\vspace{19bp}\noindent
+  \choiceslot{①}{#1}\choiceslot{②}{#2}\choiceslot{③}{#3}\choiceslot{④}{#4}\choiceslot{⑤}{#5}\par}
+\newcommand\qfig[2]{\par\vspace{10bp}{\centering\includegraphics[width=#1\linewidth]{#2}\par}\vspace{4bp}}
+\newcommand\sectionlabel[1]{\noindent{\setlength\fboxsep{4bp}\fbox{\gothic\bfseries\fontsize{12bp}{14bp}\selectfont\ #1\ }}\par\vspace{14bp}}
+
+% q29 주머니 그림 (새로 그림: A 흰1·검1, B 흰1·검2)
+\newcommand\pouch[2]{% #1 라벨, #2 공 목록 (w/b)
+  \begin{scope}
+    \draw[line width=0.9bp, fill=gray!10] (-16,58) .. controls (-50,52) and (-58,10) .. (-44,-12)
+      .. controls (-32,-30) and (32,-30) .. (44,-12) .. controls (58,10) and (50,52) .. (16,58) -- cycle;
+    \draw[line width=0.9bp, fill=gray!25] (-16,58) -- (-20,70) -- (20,70) -- (16,58) -- cycle;
+    \draw[line width=0.9bp] (-18,62) -- (18,62);
+    \foreach \c [count=\k] in {#2} {
+      \pgfmathsetmacro\bx{(\k-1)*24 - 12*(\nballs-1)}
+      \if\c w\draw[line width=0.8bp, fill=white] (\bx,10) circle (9);
+      \else \draw[line width=0.8bp, fill=black] (\bx,10) circle (9); \fi
+    }
+    \node at (0,-40) {주머니 #1};
+  \end{scope}}
+\newcommand\figpouches{\par\vspace{14bp}{\centering
+  \begin{tikzpicture}[x=1bp,y=1bp]
+    \def\nballs{2}\pouch{A}{w,b}
+    \begin{scope}[xshift=150bp]\def\nballs{3}\pouch{B}{w,b,b}\end{scope}
+  \end{tikzpicture}\par}\vspace{4bp}}
+
+% ---------- 단 배치와 넘침 검사
+% 상자는 tikzpicture 밖에서 만들고(글꼴이 살아 있게) 위치만 \placements에 모아 둔다.
+\newsavebox\boxLa \newsavebox\boxLb \newsavebox\boxRa \newsavebox\boxRb
+\newlength\colh \newlength\usedh \newlength\maxh
+\newcommand\colbox[2]{\sbox{#1}{\begin{minipage}[t]{\colw}\bodyfont\setlength\parindent{0pt}#2\end{minipage}}}
+\newcommand\coltop{\ifnum\pageno=1 236\else 168\fi}
+\newcommand\checkfit[3]{% box, 허용 높이, 이름
+  \setlength\usedh{\ht#1+\dp#1}\setlength\maxh{#2}%
+  \typeout{LAYOUT p\the\pageno\space #3: \the\usedh\space / \the\maxh}%
+  \ifdim\usedh>\maxh\typeout{OVERFLOW p\the\pageno\space #3}\fi}
+\def\placements{}
+\newcommand\addplace[1]{\expandafter\def\expandafter\placements\expandafter{\placements#1}}
+\newcommand\placeat[3]{\node[anchor=north west,inner sep=0] at ([xshift=#1bp,yshift=-#2]current page.north west) {\usebox#3};}
+% 한 단 1문항. #4=1이면 마지막 쪽 오른쪽 단(아래에 확인 사항)
+\newcommand\colone[4]{\edef\cx{\if L#1\colLx\else\colRx\fi}\edef\ct{\coltop}%
+  \edef\bx{\if L#1\noexpand\boxLa\else\noexpand\boxRa\fi}%
+  \expandafter\colbox\bx{#3}\setlength\colh{\colbottom bp-\ct bp}%
+  \ifnum#4=1 \expandafter\checkfit\bx{\colh-70bp}{q#2}\else\expandafter\checkfit\bx{\colh}{q#2}\fi
+  \edef\tmp{\noexpand\placeat{\cx}{\ct bp}{\bx}}\expandafter\addplace\expandafter{\tmp}%
+  \ifnum#4=1 \edef\tmp{\noexpand\node[anchor=south west,inner sep=0] at ([xshift=\cx bp,yshift=-\colbottom bp]current page.north west) {\noexpand\confirmbox};}%
+    \expandafter\addplace\expandafter{\tmp}\fi}
+% 한 단 2문항: 아래 문항은 단 높이 57% 지점에서 시작(§3.4)
+\newcommand\coltwo[5]{\edef\cx{\if L#1\colLx\else\colRx\fi}\edef\ct{\coltop}%
+  \edef\bx{\if L#1\noexpand\boxLa\else\noexpand\boxRa\fi}\edef\by{\if L#1\noexpand\boxLb\else\noexpand\boxRb\fi}%
+  \expandafter\colbox\bx{#4}\expandafter\colbox\by{#5}\setlength\colh{\colbottom bp-\ct bp}%
+  \expandafter\checkfit\bx{0.57\colh-14bp}{q#2}\expandafter\checkfit\by{0.43\colh}{q#3}%
+  \setlength\maxh{\ct bp+0.57\colh}%
+  \edef\tmp{\noexpand\placeat{\cx}{\ct bp}{\bx}\noexpand\placeat{\cx}{\the\maxh}{\by}}\expandafter\addplace\expandafter{\tmp}}
+
+\newcommand\confirmbox{\setlength\fboxsep{8bp}\fbox{\begin{minipage}{\colw-2\fboxsep-2\fboxrule}\bodyfont
+  \textbf{※ 확인 사항}\par
+  ○ 답안지의 해당란에 필요한 내용을 정확히 기입(표기)했는지 확인하시오.\end{minipage}}}
+
+% ---------- 머리말·꼬리말 (§3.2, §3.3)
+\newcommand\at[2]{([xshift=#1bp,yshift=-#2bp]current page.north west)}
+\newcommand\header{%
+  \ifnum\pageno=1
+    \node[anchor=base,font={\gothic\bfseries\fontsize{20bp}{24bp}\selectfont}] at \at{421}{62} {2028학년도 대학수학능력시험 대비 모의고사 문제지};
+    \node[anchor=base east,font={\myeongL\fontsize{32bp}{36bp}\selectfont}] at \at{754}{66} {1};
+    \node[anchor=base west,draw,rounded corners=6bp,line width=0.9bp,inner xsep=8bp,inner ysep=6bp,
+          font={\gothic\fontsize{20bp}{24bp}\selectfont}] at \at{87}{178} {제\,2\,교시};
+    \node[anchor=base,font={\gothic\bfseries\fontsize{40bp}{46bp}\selectfont}] at \at{421}{182} {수학 영역};
+    \draw[line width=1.6bp] \at{\rulexL}{218} -- \at{\rulexR}{218};
+    \draw[line width=0.6bp] \at{\midx}{218} -- \at{\midx}{1066};
+  \else
+    \node[anchor=base,font={\gothic\bfseries\fontsize{28bp}{32bp}\selectfont}] at \at{421}{126} {수학 영역};
+    \ifodd\pageno
+      \node[anchor=base east,font={\myeongL\fontsize{32bp}{36bp}\selectfont}] at \at{754}{128} {\the\pageno};
+    \else
+      \node[anchor=base west,font={\myeongL\fontsize{32bp}{36bp}\selectfont}] at \at{87}{128} {\the\pageno};
+    \fi
+    \draw[line width=1.6bp] \at{\rulexL}{147} -- \at{\rulexR}{147};
+    \draw[line width=0.6bp] \at{\midx}{147} -- \at{\midx}{1066};
+  \fi}
+\newcommand\footer{%
+  \draw[line width=0.6bp] \at{399}{1080} rectangle \at{443}{1104};
+  \draw[line width=0.5bp] \at{399}{1104} -- \at{443}{1080};
+  \node[font=\fontsize{10bp}{12bp}\selectfont] at \at{410}{1088} {\the\pageno};
+  \node[font=\fontsize{10bp}{12bp}\selectfont] at \at{432}{1097} {12};
+  \node[anchor=base east,text=black!60,font=\fontsize{8bp}{10bp}\selectfont] at \at{754}{1118}
+    {이 문제지는 자체 제작한 모의고사입니다 (2022 개정 교육과정, 대수·미적분{\myeongL Ⅰ}·확률과 통계).};}
+
+\newcommand\exampage[2]{\pageno=#1\relax\def\placements{}#2\null
+  \begin{tikzpicture}[remember picture,overlay,x=1bp,y=1bp]
+    \header\footer
+    \placements
+  \end{tikzpicture}\newpage}
